@@ -181,8 +181,6 @@ async function migrateQuestions() {
     console.log(col.docs.length + ' Total')
     let questionsMap = {}
 
-    let WrongQuestions = []
-
     for (const doc of col.docs) {
         //inserting to mongodb
         const insertData = doc.data()
@@ -203,7 +201,7 @@ async function migrateQuestions() {
             else if (insertData.answer == "f") insertData.answer = 5
             else if (insertData.answer == "g") insertData.answer = 6
             else {
-                WrongQuestions.push(insertData)
+                //We can collect wrong questions from here, which have incorrect answers
                 continue
             }
         }
