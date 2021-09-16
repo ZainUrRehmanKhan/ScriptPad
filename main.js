@@ -185,10 +185,37 @@ async function migrateQuestions() {
         //inserting to mongodb
         const insertData = doc.data()
         insertData.statement = insertData.question
-        insertData.images = insertData.question_images
-        insertData.videos = insertData.question_videos
-        insertData.pdfs = insertData.question_pdfs
-        insertData.options = insertData.choices
+
+        //Extracting images
+        if (insertData.question_images) {
+            let imagesArr = []
+            for (let image of insertData.question_images) {
+                imagesArr.push(image.image_url)
+            }
+            insertData.images = imagesArr
+        } else insertData.images = []
+
+        //Extracting pdfs
+        if (insertData.question_pdfs) {
+            let pdfsArr = []
+            for (let pdf of insertData.question_pdfs) {
+                pdfsArr.push(pdf.url)
+            }
+            insertData.pdfs = pdfsArr
+        } else insertData.pdfs = []
+
+        //extracting videos
+        if (insertData.question_videos) {
+            let videosArr = []
+            for (let video of insertData.question_videos) {
+                videosArr.push(video.url)
+            }
+            insertData.videos = videosArr
+        } else insertData.videos = []
+
+        if(insertData.choices) insertData.options = Object.values(insertData.choices)
+
+        //correcting answers
         if (insertData.type == "bool") {
             if (insertData.answer == false) insertData.answer = 0
             else insertData.answer = 1
@@ -205,6 +232,13 @@ async function migrateQuestions() {
                 continue
             }
         }
+
+        //populating categories and subcategories
+        insertData.subcategory = (await axios.get('http://localhost:5000/subcategories/' + insertData.subcategory)).data
+        insertData.category = (await axios.get('http://localhost:5000/categories/' + insertData.category)).data
+        delete insertData.category.subs
+        delete insertData.category.createdAt
+        delete insertData.category.updatedAt
         delete insertData.id
         questionsMap[doc.data().id] = (await axios.post('http://localhost:5000/questions', insertData)).data.id
     }
@@ -213,9 +247,9 @@ async function migrateQuestions() {
 
     //Updating v2_flagged_questions
     const flaggedData = await db.collection('v2_flagged_questions').get()
-    for (const cat of flaggedData.docs) {
-        if (questionsMap[cat.data().question_id]) {
-            await db.collection('v2_flagged_questions').doc(cat.id).update("question_id", questionsMap[cat.data().question_id])
+    for (const flagQuestion of flaggedData.docs) {
+        if (questionsMap[flagQuestion.data().question_id]) {
+            await db.collection('v2_flagged_questions').doc(flagQuestion.id).update("question_id", questionsMap[flagQuestion.data().question_id])
         }
     }
     console.log('v2 flagged questions done')
