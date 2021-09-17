@@ -228,8 +228,7 @@ async function migrateQuestions() {
             else if (insertData.answer == "f") insertData.answer = 5
             else if (insertData.answer == "g") insertData.answer = 6
             else {
-                //We can collect wrong questions from here, which have incorrect answers
-                continue
+                insertData.answer = insertData.options.indexOf(insertData.answer)
             }
         }
 
