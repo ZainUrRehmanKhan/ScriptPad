@@ -121,9 +121,9 @@ db.useEmulator("localhost", 8080);
 ///////////////// MIGRATION STARTED ///////////////////
 ///////////////////////////////////////////////////////
 
-await migrateSubCategoriesAndCategories();
+await migrate();
 
-async function migrateSubCategoriesAndCategories() {
+async function migrate() {
     console.log("Migrating Sub Categories")
 
     const col = await db.collection("v2_subcategories").get()
@@ -344,121 +344,3 @@ async function migrateSubCategoriesAndCategories() {
 
     console.log('score collections done')
 }
-
-// await migrateQuestions()
-//
-// async function migrateQuestions() {
-//     console.log("Migrating Questions")
-//
-//     const col = await db.collection("v2_questions").get()
-//     console.log(col.docs.length + ' Total')
-//     let questionsMap = {}
-//     let count = 0
-//     for (const doc of col.docs) {
-//         console.log(count++)
-//         //inserting to mongodb
-//         const insertData = doc.data()
-//         insertData.statement = insertData.question
-//
-//         //Extracting images
-//         if (insertData.question_images) {
-//             let imagesArr = []
-//             for (let image of insertData.question_images) {
-//                 imagesArr.push(image.image_url)
-//             }
-//             insertData.images = imagesArr
-//         } else insertData.images = []
-//
-//         //Extracting pdfs
-//         if (insertData.question_pdfs) {
-//             let pdfsArr = []
-//             for (let pdf of insertData.question_pdfs) {
-//                 pdfsArr.push(pdf.url)
-//             }
-//             insertData.pdfs = pdfsArr
-//         } else insertData.pdfs = []
-//
-//         //extracting videos
-//         if (insertData.question_videos) {
-//             let videosArr = []
-//             for (let video of insertData.question_videos) {
-//                 videosArr.push(video.url)
-//             }
-//             insertData.videos = videosArr
-//         } else insertData.videos = []
-//
-//         if(insertData.choices) insertData.options = Object.values(insertData.choices)
-//
-//         //correcting answers
-//         if (insertData.type == "bool") {
-//             if (insertData.answer == false) insertData.answer = 0
-//             else insertData.answer = 1
-//         } else {
-//             if (insertData.answer == "a") insertData.answer = 0
-//             else if (insertData.answer == "b") insertData.answer = 1
-//             else if (insertData.answer == "c") insertData.answer = 2
-//             else if (insertData.answer == "d") insertData.answer = 3
-//             else if (insertData.answer == "e") insertData.answer = 4
-//             else if (insertData.answer == "f") insertData.answer = 5
-//             else if (insertData.answer == "g") insertData.answer = 6
-//             else {
-//                 insertData.answer = insertData.options.indexOf(insertData.answer)
-//             }
-//         }
-//
-//         //populating categories and subcategories
-//         insertData.subcategory = (await axios.get('http://localhost:5000/subcategories/' + insertData.subcategory)).data
-//         insertData.category = (await axios.get('http://localhost:5000/categories/' + insertData.category)).data
-//         delete insertData.category.subs
-//         delete insertData.category.createdAt
-//         delete insertData.category.updatedAt
-//         delete insertData.id
-//         questionsMap[doc.id] = (await axios.post('http://localhost:5000/questions', insertData)).data.id
-//     }
-//
-//     console.log("\nQuestions inserted successfully, now updating other data")
-//
-//     //Updating v2_flagged_questions
-//     const flaggedData = await db.collection('v2_flagged_questions').get()
-//     for (const flagQuestion of flaggedData.docs) {
-//         if (questionsMap[flagQuestion.data().question_id]) {
-//             await db.collection('v2_flagged_questions').doc(flagQuestion.id).update("question_id", questionsMap[flagQuestion.data().question_id])
-//         }
-//     }
-//     console.log('v2 flagged questions done')
-//
-//     const scoreCollections = ['v2_timed_mode_scores', 'v2_review_mode_scores', 'v2_qbank_scores', 'v2_endless_mode_scores']
-//
-//     // updating score collections
-//     for (const collection of scoreCollections) {
-//         let colData = await db.collection(collection).get()
-//
-//         console.log("Data Found " + colData.docs.length)
-//         count = 0
-//         for (const cat of colData.docs) {
-//             console.log(count++)
-//             const catData = cat.data().answers
-//             if (catData && catData.length > 0) {
-//                 for (let item of catData) {
-//                     if (questionsMap[item["question_id"]]) {
-//                         item.question_id = questionsMap[item["question_id"]]
-//                     }
-//
-//                     if (item.answer == false) item.answer = 0
-//                     else if (item.answer == true) item.answer = 1
-//                     else if (item.answer == "a") item.answer = 0
-//                     else if (item.answer == "b") item.answer = 1
-//                     else if (item.answer == "c") item.answer = 2
-//                     else if (item.answer == "d") item.answer = 3
-//                     else if (item.answer == "e") item.answer = 4
-//                     else if (item.answer == "f") item.answer = 5
-//                     else if (item.answer == "g") item.answer = 6
-//                 }
-//                 await db.collection(collection).doc(cat.id).update("answers", catData)
-//             }
-//         }
-//         console.log(collection + " done")
-//     }
-//
-//     console.log('score collections done')
-// }
