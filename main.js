@@ -1,6 +1,7 @@
 // Imports
 import firebase from "firebase";
 import axios from "axios";
+import * as fs from "fs";
 
 // Firebase Setup
 firebase.initializeApp({
@@ -12,12 +13,23 @@ firebase.initializeApp({
     appId: "1:347848146862:web:d1ed02b703921c4252523f",
     measurementId: "G-9FZQXBEEQ4"
 })
+
+// firebase.initializeApp({
+//     apiKey: "AIzaSyAP5OKVuX3Eu7PxwlA70UM0a2N0i9-2u_M",
+//     authDomain: "kotc-demo-622d7.firebaseapp.com",
+//     projectId: "kotc-demo-622d7",
+//     storageBucket: "kotc-demo-622d7.appspot.com",
+//     messagingSenderId: "548050728632",
+//     appId: "1:548050728632:web:1b1106c97eff45bd2be64d",
+//     measurementId: "G-LY20XD2PB6"
+// })
+
 const db = firebase.firestore();
 db.useEmulator("localhost", 8080);
 
 ////////////////////////////////////////
 //// SKIP THE COMMENTED CODE BELOW /////
-////////////////////////////////////////
+//////////////////////////////////////// 12:48
 
 // const collections = ['v2_questions']
 // const collections = ['admins', 'available_for_random_match', 'banners', 'current_matches', 'decks', 'endless_highscore', 'endless_mode_option_categories', 'friends_list', 'institution_requests', 'institutions', 'logs', 'option_categories', 'questions', 'review_mode_module', 'review_mode_questions', 'subcategories', 'user_stats', 'users', 'v2_categories', 'v2_current_matches', 'v2_endless_mode_preferences', 'v2_endless_mode_scores', 'v2_flagged_questions', 'v2_institute_confirmations', 'v2_logs', 'v2_notifications', 'v2_qbank_preferences', 'v2_qbank_score', 'v2_qbank_scores', 'v2_question_bookmarks', 'v2_questions', 'v2_review_mode_preferences', 'v2_review_mode_scores', 'v2_subcategories', 'v2_timed_mode_preferences', 'v2_timed_mode_scores', 'v2_users']
@@ -29,6 +41,7 @@ db.useEmulator("localhost", 8080);
 // fetchDataFromCollections().then(r => console.log('Done'));
 
 // async function fetchDataFromCollections() {
+//
 //
 //     ///////////////////////////////////////////////////////
 //     //// TO CHECK CANCELLATIONS AND REFUND IN FIREBASE ////
@@ -110,9 +123,9 @@ db.useEmulator("localhost", 8080);
 //     //
 //     // console.log('...Done...')
 //
-//     // await fs.writeFile('data/' + collection + '.json', JSON.stringify(result), (err, result) => {
-//     //     if (err) console.log('Error', err)
-//     // })
+//     await fs.writeFile('data/' + collection + '.json', JSON.stringify(result), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
 //     // console.log(collection + ' Successfully Converted.')
 //     // }
 // }
@@ -233,6 +246,16 @@ async function migrate() {
 
     console.log("\nQuestions inserted successfully, now updating other data")
 
+    await fs.writeFile('data/subcat.json', JSON.stringify(subCategoriesMap), (err, result) => {
+        if (err) console.log('Error', err)
+    })
+    await fs.writeFile('data/cat.json', JSON.stringify(categoriesMap), (err, result) => {
+        if (err) console.log('Error', err)
+    })
+    await fs.writeFile('data/question.json', JSON.stringify(questionsMap), (err, result) => {
+        if (err) console.log('Error', err)
+    })
+
     //Updating v2_flagged_questions
     const flaggedData = await db.collection('v2_flagged_questions').get()
     for (const flagQuestion of flaggedData.docs) {
@@ -241,6 +264,22 @@ async function migrate() {
         }
     }
     console.log('v2 flagged questions done')
+
+    //Updating v2_question_bookmarks
+    const bookmarkData = await db.collection('v2_question_bookmarks').get()
+    for (const bookmarkQuestion of bookmarkData.docs) {
+        let ques = []
+        if (bookmarkQuestion.data().questions) {
+            for (const q of bookmarkQuestion.data().questions) {
+                if (questionsMap[q])
+                    ques.push(questionsMap[q])
+            }
+        }
+        if (ques.length > 0) {
+            await db.collection('v2_question_bookmarks').doc(bookmarkQuestion.id).update("questions", ques)
+        }
+    }
+    console.log('v2 Question Bookmarks done')
 
     const collections = ['v2_endless_mode_preferences', 'v2_qbank_preferences', 'v2_review_mode_preferences', 'v2_timed_mode_preferences']
 
@@ -291,13 +330,16 @@ async function migrate() {
     console.log('preference collections done')
 
     const scoreCollections = ['v2_timed_mode_scores', 'v2_review_mode_scores', 'v2_qbank_scores', 'v2_endless_mode_scores']
+    // const scoreCollections = ['v2_endless_mode_scores']
 
     // updating score collections
     for (const scoreCollection of scoreCollections) {
         let colData = await db.collection(scoreCollection).get()
+        // let jsonData = fs.readFileSync('data/question.json')
+        // const questionsMap = JSON.parse(jsonData.toString())
 
         console.log("Data Found " + colData.docs.length)
-        count = 0
+        let count = 0
         for (const cat of colData.docs) {
             console.log(count++)
             const catData = cat.data().answers
