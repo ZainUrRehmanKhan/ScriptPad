@@ -125,263 +125,263 @@ await client.connect();
 // }
 
 
-await migrate();
+// await migrate();
 
 /////////////////////////////////////////////////////
 /////////////// MIGRATION STARTED ///////////////////
 /////////////////////////////////////////////////////
-async function migrate() {
-    console.log("Migrating Sub Categories")
-
-    const col = await db.collection("v2_subcategories").get()
-    console.log(col.docs.length + ' Total')
-    let subCategoriesMap = {}
-
-    for (const doc of col.docs) {
-        //inserting to mongodb
-        const insertData = doc.data()
-        delete insertData.id
-        subCategoriesMap[doc.data().id] = (await axios.post('http://localhost:5000/subcategories', insertData)).data.id
-    }
-
-    console.log("\nSubcategories inserted successfully, now updating other data")
-
-    console.log("Migrating Categories")
-
-    const col2 = await db.collection("v2_categories").get()
-    console.log(col2.docs.length + ' Total')
-    let categoriesMap = {}
-
-    for (const doc of col2.docs) {
-        //inserting to mongodb
-        const insertData = doc.data()
-        delete insertData.id
-
-        const listSubs = []
-        for (const item of insertData.subs) {
-            if (subCategoriesMap[item.id]) {
-                item.id = subCategoriesMap[item.id]
-                listSubs.push(item)
-            } else listSubs.push(item)
-        }
-
-        insertData.subCategories = listSubs
-        categoriesMap[doc.data().id] = (await axios.post('http://localhost:5000/categories', insertData)).data.id
-    }
-
-    console.log("\nCategories inserted successfully, now updating other data")
-
-    //updating v2_questions
-    const questionData = await db.collection('v2_questions').get()
-
-    let questionsMap = {}
-    let count = 0
-    for (const doc of questionData.docs) {
-        console.log(count++)
-        //inserting to mongodb
-        const insertData = doc.data()
-        insertData.statement = insertData.question
-
-        //Extracting images
-        if (insertData.question_images) {
-            let imagesArr = []
-            for (let image of insertData.question_images) {
-                imagesArr.push(image.image_url)
-            }
-            insertData.images = imagesArr
-        } else insertData.images = []
-
-        //Extracting pdfs
-        if (insertData.question_pdfs) {
-            let pdfsArr = []
-            for (let pdf of insertData.question_pdfs) {
-                pdfsArr.push(pdf.url)
-            }
-            insertData.pdfs = pdfsArr
-        } else insertData.pdfs = []
-
-        //extracting videos
-        if (insertData.question_videos) {
-            let videosArr = []
-            for (let video of insertData.question_videos) {
-                videosArr.push(video.url)
-            }
-            insertData.videos = videosArr
-        } else insertData.videos = []
-
-        if (insertData.choices) insertData.options = Object.values(insertData.choices)
-
-        //correcting answers
-        if (insertData.type == "bool") {
-            if (insertData.answer == false) insertData.answer = 0
-            else insertData.answer = 1
-        } else {
-            if (insertData.answer == "a") insertData.answer = 0
-            else if (insertData.answer == "b") insertData.answer = 1
-            else if (insertData.answer == "c") insertData.answer = 2
-            else if (insertData.answer == "d") insertData.answer = 3
-            else if (insertData.answer == "e") insertData.answer = 4
-            else if (insertData.answer == "f") insertData.answer = 5
-            else if (insertData.answer == "g") insertData.answer = 6
-            else {
-                insertData.answer = insertData.options.indexOf(insertData.answer)
-            }
-        }
-
-        //populating categories and subcategories
-        insertData.subcategory = (await axios.get('http://localhost:5000/subcategories/' + subCategoriesMap[insertData.subcategory])).data
-        insertData.category = (await axios.get('http://localhost:5000/categories/' + categoriesMap[insertData.category])).data
-        delete insertData.category.subs
-        delete insertData.category.createdAt
-        delete insertData.category.updatedAt
-        delete insertData.id
-        questionsMap[doc.id] = (await axios.post('http://localhost:5000/questions', insertData)).data.id
-    }
-
-    console.log("\nQuestions inserted successfully, now updating other data")
-
-    await fs.writeFile('data/subcat.json', JSON.stringify(subCategoriesMap), (err, result) => {
-        if (err) console.log('Error', err)
-    })
-    await fs.writeFile('data/cat.json', JSON.stringify(categoriesMap), (err, result) => {
-        if (err) console.log('Error', err)
-    })
-    await fs.writeFile('data/question.json', JSON.stringify(questionsMap), (err, result) => {
-        if (err) console.log('Error', err)
-    })
-
-    //Updating v2_flagged_questions
-    const flaggedData = await db.collection('v2_flagged_questions').get()
-    for (const flagQuestion of flaggedData.docs) {
-        if (questionsMap[flagQuestion.data().question_id]) {
-            await db.collection('v2_flagged_questions').doc(flagQuestion.id).update("question_id", questionsMap[flagQuestion.data().question_id])
-        }
-    }
-    console.log('v2 flagged questions done')
-
-    //Updating v2_question_bookmarks
-    const bookmarkData = await db.collection('v2_question_bookmarks').get()
-    for (const bookmarkQuestion of bookmarkData.docs) {
-        let ques = []
-        if (bookmarkQuestion.data().questions) {
-            for (const q of bookmarkQuestion.data().questions) {
-                if (questionsMap[q])
-                    ques.push(questionsMap[q])
-            }
-        }
-        if (ques.length > 0) {
-            await db.collection('v2_question_bookmarks').doc(bookmarkQuestion.id).update("questions", ques)
-        }
-    }
-    console.log('v2 Question Bookmarks done')
-
-
-    const collections = ['v2_endless_mode_preferences', 'v2_qbank_preferences', 'v2_review_mode_preferences', 'v2_timed_mode_preferences']
-
-    // updating preferences collections
-    for (const collection of collections) {
-        console.log(collection)
-        let count = 0;
-        let prefColData = await db.collection(collection).get()
-        for (const prefData of prefColData.docs) {
-            console.log(count++)
-            const subCatData = prefData.data().subcategories
-            const mainCatData = prefData.data().categories
-
-            let one = false
-            let two = false
-
-            if (subCatData && subCatData.length > 0) {
-                one = true
-                for (const item of subCatData) {
-                    if (subCategoriesMap[item]) {
-                        //remove item and add new
-                        const index = subCatData.indexOf(item)
-                        subCatData[index] = subCategoriesMap[item]
-                    }
-                }
-            }
-
-            if (mainCatData && mainCatData.length > 0) {
-                two = true
-                for (const item of mainCatData) {
-                    if (categoriesMap[item]) {
-                        //remove item and add new
-                        const index = mainCatData.indexOf(item)
-                        mainCatData[index] = categoriesMap[item]
-                    }
-                }
-            }
-
-            if (one && two)
-                await db.collection(collection).doc(prefData.id).update("subcategories", subCatData, "categories", mainCatData)
-            else if (one)
-                await db.collection(collection).doc(prefData.id).update("subcategories", subCatData)
-            else if (two)
-                await db.collection(collection).doc(prefData.id).update("categories", mainCatData)
-        }
-        console.log("#########################################################")
-    }
-    console.log('preference collections done')
-
-
-    const scoreCollections = ['v2_timed_mode_scores', 'v2_review_mode_scores', 'v2_qbank_scores', 'v2_endless_mode_scores']
-    // const scoreCollections = ['v2_endless_mode_scores']
-
-    // updating score collections
-    for (const scoreCollection of scoreCollections) {
-        let colData = await db.collection(scoreCollection).get()
-        // let jsonData = fs.readFileSync('data/question.json')
-        // const questionsMap = JSON.parse(jsonData.toString())
-
-        console.log("Data Found " + colData.docs.length)
-        let count = 0
-        for (const cat of colData.docs) {
-            console.log(count++)
-            const catData = cat.data().answers
-            let answers = []
-            if (catData && catData.length > 0) {
-                for (let item of catData) {
-                    if (questionsMap[item["question_id"]]) {
-                        item.question_id = questionsMap[item["question_id"]]
-                    }
-
-                    if (item.answer == false) item.answer = 0
-                    else if (item.answer == true) item.answer = 1
-                    else if (item.answer == "a") item.answer = 0
-                    else if (item.answer == "b") item.answer = 1
-                    else if (item.answer == "c") item.answer = 2
-                    else if (item.answer == "d") item.answer = 3
-                    else if (item.answer == "e") item.answer = 4
-                    else if (item.answer == "f") item.answer = 5
-                    else if (item.answer == "g") item.answer = 6
-
-                    answers.push(item)
-                }
-            }
-            let myData = cat.data()
-            myData.answers = answers
-
-            switch (scoreCollection) {
-                case "v2_timed_mode_scores":
-                    await axios.post('http://localhost:5000/timed-mode-scores', myData)
-                    break
-                case "v2_review_mode_scores":
-                    await axios.post('http://localhost:5000/review-mode-scores', myData)
-                    break
-                case "v2_qbank_scores":
-                    await axios.post('http://localhost:5000/qbank-mode-scores', myData)
-                    break
-                case "v2_endless_mode_scores":
-                    await axios.post('http://localhost:5000/endless-mode-scores', myData)
-                    break
-            }
-        }
-        console.log(scoreCollection + " done")
-    }
-
-    console.log('score collections done')
-}
+// async function migrate() {
+//     console.log("Migrating Sub Categories")
+//
+//     const col = await db.collection("v2_subcategories").get()
+//     console.log(col.docs.length + ' Total')
+//     let subCategoriesMap = {}
+//
+//     for (const doc of col.docs) {
+//         //inserting to mongodb
+//         const insertData = doc.data()
+//         delete insertData.id
+//         subCategoriesMap[doc.data().id] = (await axios.post('http://localhost:5000/subcategories', insertData)).data.id
+//     }
+//
+//     console.log("\nSubcategories inserted successfully, now updating other data")
+//
+//     console.log("Migrating Categories")
+//
+//     const col2 = await db.collection("v2_categories").get()
+//     console.log(col2.docs.length + ' Total')
+//     let categoriesMap = {}
+//
+//     for (const doc of col2.docs) {
+//         //inserting to mongodb
+//         const insertData = doc.data()
+//         delete insertData.id
+//
+//         const listSubs = []
+//         for (const item of insertData.subs) {
+//             if (subCategoriesMap[item.id]) {
+//                 item.id = subCategoriesMap[item.id]
+//                 listSubs.push(item)
+//             } else listSubs.push(item)
+//         }
+//
+//         insertData.subCategories = listSubs
+//         categoriesMap[doc.data().id] = (await axios.post('http://localhost:5000/categories', insertData)).data.id
+//     }
+//
+//     console.log("\nCategories inserted successfully, now updating other data")
+//
+//     //updating v2_questions
+//     const questionData = await db.collection('v2_questions').get()
+//
+//     let questionsMap = {}
+//     let count = 0
+//     for (const doc of questionData.docs) {
+//         console.log(count++)
+//         //inserting to mongodb
+//         const insertData = doc.data()
+//         insertData.statement = insertData.question
+//
+//         //Extracting images
+//         if (insertData.question_images) {
+//             let imagesArr = []
+//             for (let image of insertData.question_images) {
+//                 imagesArr.push(image.image_url)
+//             }
+//             insertData.images = imagesArr
+//         } else insertData.images = []
+//
+//         //Extracting pdfs
+//         if (insertData.question_pdfs) {
+//             let pdfsArr = []
+//             for (let pdf of insertData.question_pdfs) {
+//                 pdfsArr.push(pdf.url)
+//             }
+//             insertData.pdfs = pdfsArr
+//         } else insertData.pdfs = []
+//
+//         //extracting videos
+//         if (insertData.question_videos) {
+//             let videosArr = []
+//             for (let video of insertData.question_videos) {
+//                 videosArr.push(video.url)
+//             }
+//             insertData.videos = videosArr
+//         } else insertData.videos = []
+//
+//         if (insertData.choices) insertData.options = Object.values(insertData.choices)
+//
+//         //correcting answers
+//         if (insertData.type == "bool") {
+//             if (insertData.answer == false) insertData.answer = 0
+//             else insertData.answer = 1
+//         } else {
+//             if (insertData.answer == "a") insertData.answer = 0
+//             else if (insertData.answer == "b") insertData.answer = 1
+//             else if (insertData.answer == "c") insertData.answer = 2
+//             else if (insertData.answer == "d") insertData.answer = 3
+//             else if (insertData.answer == "e") insertData.answer = 4
+//             else if (insertData.answer == "f") insertData.answer = 5
+//             else if (insertData.answer == "g") insertData.answer = 6
+//             else {
+//                 insertData.answer = insertData.options.indexOf(insertData.answer)
+//             }
+//         }
+//
+//         //populating categories and subcategories
+//         insertData.subcategory = (await axios.get('http://localhost:5000/subcategories/' + subCategoriesMap[insertData.subcategory])).data
+//         insertData.category = (await axios.get('http://localhost:5000/categories/' + categoriesMap[insertData.category])).data
+//         delete insertData.category.subs
+//         delete insertData.category.createdAt
+//         delete insertData.category.updatedAt
+//         delete insertData.id
+//         questionsMap[doc.id] = (await axios.post('http://localhost:5000/questions', insertData)).data.id
+//     }
+//
+//     console.log("\nQuestions inserted successfully, now updating other data")
+//
+//     await fs.writeFile('data/subcat.json', JSON.stringify(subCategoriesMap), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+//     await fs.writeFile('data/cat.json', JSON.stringify(categoriesMap), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+//     await fs.writeFile('data/question.json', JSON.stringify(questionsMap), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+//
+//     //Updating v2_flagged_questions
+//     const flaggedData = await db.collection('v2_flagged_questions').get()
+//     for (const flagQuestion of flaggedData.docs) {
+//         if (questionsMap[flagQuestion.data().question_id]) {
+//             await db.collection('v2_flagged_questions').doc(flagQuestion.id).update("question_id", questionsMap[flagQuestion.data().question_id])
+//         }
+//     }
+//     console.log('v2 flagged questions done')
+//
+//     //Updating v2_question_bookmarks
+//     const bookmarkData = await db.collection('v2_question_bookmarks').get()
+//     for (const bookmarkQuestion of bookmarkData.docs) {
+//         let ques = []
+//         if (bookmarkQuestion.data().questions) {
+//             for (const q of bookmarkQuestion.data().questions) {
+//                 if (questionsMap[q])
+//                     ques.push(questionsMap[q])
+//             }
+//         }
+//         if (ques.length > 0) {
+//             await db.collection('v2_question_bookmarks').doc(bookmarkQuestion.id).update("questions", ques)
+//         }
+//     }
+//     console.log('v2 Question Bookmarks done')
+//
+//
+//     const collections = ['v2_endless_mode_preferences', 'v2_qbank_preferences', 'v2_review_mode_preferences', 'v2_timed_mode_preferences']
+//
+//     // updating preferences collections
+//     for (const collection of collections) {
+//         console.log(collection)
+//         let count = 0;
+//         let prefColData = await db.collection(collection).get()
+//         for (const prefData of prefColData.docs) {
+//             console.log(count++)
+//             const subCatData = prefData.data().subcategories
+//             const mainCatData = prefData.data().categories
+//
+//             let one = false
+//             let two = false
+//
+//             if (subCatData && subCatData.length > 0) {
+//                 one = true
+//                 for (const item of subCatData) {
+//                     if (subCategoriesMap[item]) {
+//                         //remove item and add new
+//                         const index = subCatData.indexOf(item)
+//                         subCatData[index] = subCategoriesMap[item]
+//                     }
+//                 }
+//             }
+//
+//             if (mainCatData && mainCatData.length > 0) {
+//                 two = true
+//                 for (const item of mainCatData) {
+//                     if (categoriesMap[item]) {
+//                         //remove item and add new
+//                         const index = mainCatData.indexOf(item)
+//                         mainCatData[index] = categoriesMap[item]
+//                     }
+//                 }
+//             }
+//
+//             if (one && two)
+//                 await db.collection(collection).doc(prefData.id).update("subcategories", subCatData, "categories", mainCatData)
+//             else if (one)
+//                 await db.collection(collection).doc(prefData.id).update("subcategories", subCatData)
+//             else if (two)
+//                 await db.collection(collection).doc(prefData.id).update("categories", mainCatData)
+//         }
+//         console.log("#########################################################")
+//     }
+//     console.log('preference collections done')
+//
+//
+//     const scoreCollections = ['v2_timed_mode_scores', 'v2_review_mode_scores', 'v2_qbank_scores', 'v2_endless_mode_scores']
+//     // const scoreCollections = ['v2_endless_mode_scores']
+//
+//     // updating score collections
+//     for (const scoreCollection of scoreCollections) {
+//         let colData = await db.collection(scoreCollection).get()
+//         // let jsonData = fs.readFileSync('data/question.json')
+//         // const questionsMap = JSON.parse(jsonData.toString())
+//
+//         console.log("Data Found " + colData.docs.length)
+//         let count = 0
+//         for (const cat of colData.docs) {
+//             console.log(count++)
+//             const catData = cat.data().answers
+//             let answers = []
+//             if (catData && catData.length > 0) {
+//                 for (let item of catData) {
+//                     if (questionsMap[item["question_id"]]) {
+//                         item.question_id = questionsMap[item["question_id"]]
+//                     }
+//
+//                     if (item.answer == false) item.answer = 0
+//                     else if (item.answer == true) item.answer = 1
+//                     else if (item.answer == "a") item.answer = 0
+//                     else if (item.answer == "b") item.answer = 1
+//                     else if (item.answer == "c") item.answer = 2
+//                     else if (item.answer == "d") item.answer = 3
+//                     else if (item.answer == "e") item.answer = 4
+//                     else if (item.answer == "f") item.answer = 5
+//                     else if (item.answer == "g") item.answer = 6
+//
+//                     answers.push(item)
+//                 }
+//             }
+//             let myData = cat.data()
+//             myData.answers = answers
+//
+//             switch (scoreCollection) {
+//                 case "v2_timed_mode_scores":
+//                     await axios.post('http://localhost:5000/timed-mode-scores', myData)
+//                     break
+//                 case "v2_review_mode_scores":
+//                     await axios.post('http://localhost:5000/review-mode-scores', myData)
+//                     break
+//                 case "v2_qbank_scores":
+//                     await axios.post('http://localhost:5000/qbank-mode-scores', myData)
+//                     break
+//                 case "v2_endless_mode_scores":
+//                     await axios.post('http://localhost:5000/endless-mode-scores', myData)
+//                     break
+//             }
+//         }
+//         console.log(scoreCollection + " done")
+//     }
+//
+//     console.log('score collections done')
+// }
 
 // await correctQuestions();
 //
@@ -603,46 +603,46 @@ async function migrate() {
 // }
 // }
 
-// await removePremium();
-//
-// async function removePremium() {
-//     const premium = []
-//     const nonPremium = []
-//     db.collection("v2_users").get().then(value => {
-//             for (let doc of value.docs) {
-//                 const data = doc.data()
-//                 if (data.purchase) {
-//                     if (data.purchase.latest_receipt_info[0].product_id !== "lifetime") {
-//                         let a = new Date(data.purchase.latest_receipt_info[0].expires_date?.split(' ')[0])
-//                         if (a < new Date('2021-12-10')) {
-//                             // if (data.is_premium) {
-//                             //     // db.collection("v2_users").doc(doc.id).update({"is_premium": false}).then(value1 => nonPremium.push(doc.id))
-//                             // }
-//                             nonPremium.push(doc.id)
-//                         } else {
-//                             // console.log(!data.is_premium)
-//                             // if (!data.is_premium) {
-//                             //     // db.collection("v2_users").doc(doc.id).update({"is_premium": true}).then(value1 => premium.push(doc.id))
-//                             // }
-//                             premium.push(doc.id)
-//                         }
-//                     }
-//                 }
-//             }
-//             // fs.writeFile('non-premium.json', JSON.stringify(nonPremium), (err, result) => {
-//             //     if (err) console.log('Error', err)
-//             // })
-//             // fs.writeFile('premium.json', JSON.stringify(premium), (err, result) => {
-//             //     if (err) console.log('Error', err)
-//             // })
-//             console.log(nonPremium[10])
-//             console.log(nonPremium[20])
-//             console.log("============")
-//             console.log(premium[10])
-//             console.log(premium[20])
-//         }
-//     )
-// }
+await removePremium();
+
+async function removePremium() {
+    const premium = []
+    const nonPremium = []
+    db.collection("v2_users").get().then(value => {
+            for (let doc of value.docs) {
+                const data = doc.data()
+                if (data.is_premium && data.purchase && data.purchase.latest_receipt_info[0].product_id !== "lifetime") {
+                    let a = new Date(data.purchase.latest_receipt_info[0].expires_date?.split(' ')[0])
+                    if (a < new Date('2021-12-15')) {
+                        if (data.is_premium) {
+                            db.collection("v2_users").doc(doc.id).update({"is_premium": false}).then(value1 => nonPremium.push(doc.id))
+                        }
+                        // nonPremium.push(doc.id)
+                    } else {
+                        // console.log(!data.is_premium)
+                        // if (!data.is_premium) {
+                        //     // db.collection("v2_users").doc(doc.id).update({"is_premium": true}).then(value1 => premium.push(doc.id))
+                        // }
+                        premium.push(doc.id)
+                    }
+                }
+            }
+            fs.writeFile('non-premium.json', JSON.stringify(nonPremium), (err, result) => {
+                if (err) console.log('Error', err)
+            })
+            fs.writeFile('premium.json', JSON.stringify(premium), (err, result) => {
+                if (err) console.log('Error', err)
+            })
+            console.log(nonPremium[10])
+            console.log(nonPremium[20])
+            console.log(nonPremium.length)
+            console.log("============")
+            console.log(premium[10])
+            console.log(premium[20])
+            console.log(premium.length)
+        }
+    )
+}
 
 // await migratePreferences()
 
@@ -684,18 +684,6 @@ async function migrate() {
 //     let data = await db.collection("v2_question_bookmarks").doc("u8sIYmB2xcNoijAEzmXQESyzVGD3").get().then(value => console.log(value.data()))
 // }
 
-// await insertingChiveLabData();
-//
-// async function insertingChiveLabData() {
-//     let count = 0;
-//     fs.createReadStream('/home/zainkhan/Downloads/branded_food.csv')
-//         .pipe(csvParser())
-//         .on('data', async (data) => { await client.db("chivelab").collection("foods").insertOne(data); console.log(count++)})
-//         .on('end', () => {
-//             console.log("-");
-//         });
-// }
-
 // await migrateFlaggedQuestions();
 //
 // async function migrateFlaggedQuestions() {
@@ -711,4 +699,37 @@ async function migrate() {
 //         await axios.post('http://localhost:5000/flagged-questions', flagged).then(value => console.log("-")).catch(reason => console.log(reason))
 //     }
 //     console.log('v2 flagged questions done')
+// }
+
+// func (n *institutesService) ConnectToInstitute() {
+//     fmt.Println("starting...")
+//     cred := option.WithCredentialsJSON([]byte("{\n  \"type\": \"service_account\",\n  \"project_id\": \"kings-of-the-curve-sonal\",\n  \"private_key_id\": \"11475dea7ebcb9925401c6fb3c111d957391a7b9\",\n  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCDv+Wr13qDYVWV\\nnufPXlD180Ud9QyuXsf7Ao+nCwlyReQxXNXokWJDW1cakP4fN8EtpC94qydg+dTE\\nNFJS2XrwvoUdORt4rYgRmgpDHNCGmj1xGj4A5XWYG0Mq5E5OH9SUf4xEB5gBTpFJ\\nk6OGLfszpFvtwdfSlPF62VFdgm6ufavKDNX/97Spn3PzMJdyzTexU6J8/gEp4X6L\\nz6ZGfQI/BXHc8jDz37Nfbw3X7efCpCZsDWIQBInt/5Wy/IKGNzOjSBJJtQHaHka+\\n952JdD3qOy3aYottemMnGij/Cek5MWfIsHTATkP8D79sDx99DtP78iNNDGxgurbR\\ncKHXbw0tAgMBAAECggEAAIE+nDMaaZUbrOVUfZ8TChNUQSgWjjc6rH9XD34JShgh\\neCLGEoZ8dcYSVMlSRRBDlhuY0m1TqCrivD9gt2G9saLuWtX+r7oy3vd8vNpIGKVn\\nTMezAk7eyrePqevSgHMjaYoVOL7Jy45lYdvASyqQZV1+AfZ1spSn/MgHC0q7+wa8\\nNpoKWEeV4cJgoK2zP7yUxdX+E7HZaYMSypaMt+k+kiAeEQ//8cVEqJBW8SSgxSAW\\nTc5uKxSAu/SqCuXwLaa1xCO6Wa+coA8YmTw53Wgkco6VPyxQODsrsEfbQsPYdF8o\\n0717WunYcFj1yCaS8vEa8PEADdgK82jwT0YFzlvSkwKBgQC3v6O13c6SlG+WXDlu\\npJukWzV/9ULQyKQLBllzB/dZxq7qxfLTmGbzWqXLM6J3Ti90pSgR7yK292rSyPxX\\nXG1/9An0/x/L3PztHyJl4xjJMTP83oPYJRl7aeybcE3nk3BhsNvoHZdPf3vhJBRm\\ngbrGoTqipRkEU2rZh6zUcsT0vwKBgQC3jfmDVZ32x2eJS8ERYMjxHCkQ6t7N39dv\\n4bDrGDHbVuCwDT7t1O4kaYUkZxuSQLTY/fsR4965PkWfixSGNnVdMRQxEkc8iIL0\\nvW8tvN5chKN+VWuTLHUwZTA+kmEPGEUnR0la4tKsv7ol5QQen87duI7q99N1lWrW\\n0QxT7njdEwKBgCX+Uyx0q5T1aklN0nZFRQVr8pj9ro4bHohFDNPTLtr6UQqsWXRV\\nC9x/vs5QY+SFXxygVbO3nZb1e7oP4tVxgBa38CMfaYSusgGZsXQdy+815EkB/YMA\\n0M8K7OiLBSDABLm+ZwoMrE+8zXGVEz7KzkLp7YTZ3F1fnjVSb3MSNBVjAoGAFfSO\\nds4j4ePCF6MPCeQYxPZIVzSwx9FRdJl7TvOK6yB+KbC76TjB72sLuOn4W0sQFrBy\\nepZWCrRPIaFCKDeVXDtFngUArlXpzBpolQD1W/2ljLPs9SKpNcu0tJdPsr2FcAhP\\n1uYwqucX/fZhwsP8u3qa5bIVAgiISf+hSNzKai8CgYAy8RW8aDGmqY7O7ti86gGH\\nrOpv9tQEUHlaQaVLs+9TwInDMTh5mVzBHmWq7Y9HTsWKQ953v3ASGvMyf9/qLm6b\\nkywImrdbQbyvTDLZwN/lFhAeM0dpNfpItvPKCwPrcufNPx7FKqCn8IbjbjRqzkfn\\nyvPv0I3QsChEra2PTqjr+w==\\n-----END PRIVATE KEY-----\\n\",\n  \"client_email\": \"firebase-adminsdk-tpo6p@kings-of-the-curve-sonal.iam.gserviceaccount.com\",\n  \"client_id\": \"114493104750696303008\",\n  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-tpo6p%40kings-of-the-curve-sonal.iam.gserviceaccount.com\"\n}\n"))
+//     app, err := firebase.NewApp(context.Background(), nil, cred)
+//     if err != nil {
+//         panic(err)
+//     }
+//
+//     store, err := app.Firestore(context.TODO())
+//     if err != nil {
+//         panic(err)
+//     }
+//
+//     iter := store.Collection("v2_users").Documents(context.TODO())
+//     docs, err := iter.GetAll()
+//     if err != nil {
+//         return
+//     }
+//     fmt.Println(len(docs))
+//     for _, doc := range docs {
+//         data := doc.Data()
+//
+//         if data["institute"] == nil && data["email"] != nil {
+//             domain := strings.Split(data["email"].(string), "@")[1]
+//             if strings.Contains(domain, "edu") {
+//                 fmt.Println(data["email"].(string))
+//                 n.LinkInstitutionEmail(data["email"].(string), doc.Ref.ID)
+//             }
+//         }
+//     }
+//     fmt.Println("END")
 // }
