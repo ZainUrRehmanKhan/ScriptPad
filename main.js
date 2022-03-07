@@ -1,6 +1,6 @@
 // Imports
 import firebase from "firebase";
-import {MongoClient} from "mongodb";
+import {MongoClient, ObjectId} from "mongodb";
 import * as fs from "fs";
 import axios from "axios";
 // import csvParser from "csv-parser";
@@ -35,7 +35,7 @@ const db = firebase.firestore();
 const client = new MongoClient("mongodb://localhost:27017/kotc--db");
 // const client = new MongoClient("mongodb://api.kingofthecurve.org:27017/kotc--db");
 // const client = new MongoClient("mongodb+srv://arish:1234@cluster0.kz2th.mongodb.net/kotc--db?retryWrites=true&w=majority");
-await client.connect();
+// await client.connect();
 
 // fetchDataFromCollections().then(r => console.log('Done'));
 //
@@ -142,7 +142,7 @@ await client.connect();
 //         const insertData = doc.data()
 //         delete insertData.id
 //         subCategoriesMap[doc.data().id] = (await axios.post('http://localhost:5000/subcategories', insertData)).data.id
-//     }
+//     }{id}
 //
 //     console.log("\nSubcategories inserted successfully, now updating other data")
 //
@@ -603,46 +603,43 @@ await client.connect();
 // }
 // }
 
-await removePremium();
-
-async function removePremium() {
-    const premium = []
-    const nonPremium = []
-    db.collection("v2_users").get().then(value => {
-            for (let doc of value.docs) {
-                const data = doc.data()
-                if (data.is_premium && data.purchase && data.purchase.latest_receipt_info[0].product_id !== "lifetime") {
-                    let a = new Date(data.purchase.latest_receipt_info[0].expires_date?.split(' ')[0])
-                    if (a < new Date('2021-12-15')) {
-                        if (data.is_premium) {
-                            db.collection("v2_users").doc(doc.id).update({"is_premium": false}).then(value1 => nonPremium.push(doc.id))
-                        }
-                        // nonPremium.push(doc.id)
-                    } else {
-                        // console.log(!data.is_premium)
-                        // if (!data.is_premium) {
-                        //     // db.collection("v2_users").doc(doc.id).update({"is_premium": true}).then(value1 => premium.push(doc.id))
-                        // }
-                        premium.push(doc.id)
-                    }
-                }
-            }
-            fs.writeFile('non-premium.json', JSON.stringify(nonPremium), (err, result) => {
-                if (err) console.log('Error', err)
-            })
-            fs.writeFile('premium.json', JSON.stringify(premium), (err, result) => {
-                if (err) console.log('Error', err)
-            })
-            console.log(nonPremium[10])
-            console.log(nonPremium[20])
-            console.log(nonPremium.length)
-            console.log("============")
-            console.log(premium[10])
-            console.log(premium[20])
-            console.log(premium.length)
-        }
-    )
-}
+// removePremium().then(r => console.log("==============="));
+//
+// async function removePremium() {
+//     const premium = []
+//     const nonPremium = []
+//     db.collection("v2_users").get().then(async value => {
+//             for (let doc of value.docs) {
+//                 const data = doc.data()
+//                 if (data.is_premium && data.purchase && data.purchase.latest_receipt_info[0].product_id !== "lifetime") {
+//                     let a = new Date(data.purchase.latest_receipt_info[0].expires_date.split(' ')[0])
+//                     if (a < new Date('2021-12-22')) {
+//                         // if (data.is_premium) {
+//                         //     db.collection("v2_users").doc(doc.id).update({"is_premium": false}).then(value1 => nonPremium.push(doc.id))
+//                         // }
+//                         nonPremium.push(doc.id)
+//                     } else {
+//                         // console.log(!data.is_premium)
+//                         // if (!data.is_premium) {
+//                         //     // db.collection("v2_users").doc(doc.id).update({"is_premium": true}).then(value1 => premium.push(doc.id))
+//                         // }
+//                         premium.push(doc.id)
+//                     }
+//                 }
+//             }
+//             fs.writeFile('non-premium.json', JSON.stringify(nonPremium), (err, result) => {
+//                 if (err) console.log('Error', err)
+//             })
+//             fs.writeFile('premium.json', JSON.stringify(premium), (err, result) => {
+//                 if (err) console.log('Error', err)
+//             })
+//             console.log(nonPremium)
+//             console.log(nonPremium.length)
+//             console.log("============")
+//             console.log(premium.length)
+//         }
+//     )
+// }
 
 // await migratePreferences()
 
@@ -732,4 +729,49 @@ async function removePremium() {
 //         }
 //     }
 //     fmt.Println("END")
+// }
+
+// deleteInvalidImagesFromQuestions();
+//
+// async function deleteInvalidImagesFromQuestions() {
+//     await client.connect()
+//     const questions = await client.db('kotc--db').collection("questions").find({
+//         images: {
+//             $exists: true,
+//             $not: {$size: 0}
+//         }
+//     }).toArray()
+//     console.log(questions.length)
+//
+//     // await fs.writeFile('all-questions.json', JSON.stringify(questions), (err, result) => {
+//     //     if (err) console.log('Error', err)
+//     // })
+//     //
+//     // let i = 0
+//     // const questionsFixed = []
+//     // for (let question of questions) {
+//     //     let images = []
+//     //     let flag = false;
+//     //     if (question.images) {
+//     //         for (let i = 0; i < question.images.length; ++i) {
+//     //             await axios.get(question.images[i]).then(value => {
+//     //                 images.push(question.images[i])
+//     //             }).catch(reason => {
+//     //                 flag = true
+//     //             })
+//     //         }
+//     //         if (flag) {
+//     //             question.images = images
+//     //             await client.db('kotc--db').collection("questions").findOneAndUpdate({_id: question._id}, {$set: {images: images}});
+//     //             // questionsFixed.push(question._id)
+//     //         }
+//     //         console.log(i++, '/', questions.length)
+//     //     }
+//     // }
+//     //
+//     // await fs.writeFile('fixed-questions.json', JSON.stringify(questionsFixed), (err, result) => {
+//     //     if (err) console.log('Error', err)
+//     // })
+//
+//     // console.log('Questions done')
 // }
