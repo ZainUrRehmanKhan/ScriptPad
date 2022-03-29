@@ -1,20 +1,23 @@
 // Imports
-import firebase from "firebase";
-import {MongoClient, ObjectId} from "mongodb";
+// import firebase from "firebase";
+// import {MongoClient, ObjectId} from "mongodb";
 import * as fs from "fs";
 import axios from "axios";
+import prettier from 'prettier'
+import pkg from 'jsdom';
+const { JSDOM } = pkg;
 // import csvParser from "csv-parser";
 
 // Firebase Setup
-firebase.initializeApp({
-    apiKey: "AIzaSyDNkhYP2qNLwxhujM9_2I5CTAAsELX0aLo",
-    authDomain: "kings-of-the-curve-sonal.firebaseapp.com",
-    projectId: "kings-of-the-curve-sonal",
-    storageBucket: "kings-of-the-curve-sonal.appspot.com",
-    messagingSenderId: "347848146862",
-    appId: "1:347848146862:web:d1ed02b703921c4252523f",
-    measurementId: "G-9FZQXBEEQ4"
-})
+// firebase.initializeApp({
+//     apiKey: "AIzaSyDNkhYP2qNLwxhujM9_2I5CTAAsELX0aLo",
+//     authDomain: "kings-of-the-curve-sonal.firebaseapp.com",
+//     projectId: "kings-of-the-curve-sonal",
+//     storageBucket: "kings-of-the-curve-sonal.appspot.com",
+//     messagingSenderId: "347848146862",
+//     appId: "1:347848146862:web:d1ed02b703921c4252523f",
+//     measurementId: "G-9FZQXBEEQ4"
+// })
 
 // firebase.initializeApp({
 //     apiKey: "AIzaSyAP5OKVuX3Eu7PxwlA70UM0a2N0i9-2u_M",
@@ -26,13 +29,13 @@ firebase.initializeApp({
 //     measurementId: "G-LY20XD2PB6"
 // })
 
-const db = firebase.firestore();
+// const db = firebase.firestore();
 // db.useEmulator("localhost", 8080);
 
 // const collections = ['v2_questions']
 // const collections = ['admins', 'available_for_random_match', 'banners', 'current_matches', 'decks', 'endless_highscore', 'endless_mode_option_categories', 'friends_list', 'institution_requests', 'institutions', 'logs', 'option_categories', 'questions', 'review_mode_module', 'review_mode_questions', 'subcategories', 'user_stats', 'users', 'v2_categories', 'v2_current_matches', 'v2_endless_mode_preferences', 'v2_endless_mode_scores', 'v2_flagged_questions', 'v2_institute_confirmations', 'v2_logs', 'v2_notifications', 'v2_qbank_preferences', 'v2_qbank_score', 'v2_qbank_scores', 'v2_question_bookmarks', 'v2_questions', 'v2_review_mode_preferences', 'v2_review_mode_scores', 'v2_subcategories', 'v2_timed_mode_preferences', 'v2_timed_mode_scores', 'v2_users']
 
-const client = new MongoClient("mongodb://localhost:27017/kotc--db");
+// const client = new MongoClient("mongodb://localhost:27017/kotc--db");
 // const client = new MongoClient("mongodb://api.kingofthecurve.org:27017/kotc--db");
 // const client = new MongoClient("mongodb+srv://arish:1234@cluster0.kz2th.mongodb.net/kotc--db?retryWrites=true&w=majority");
 // await client.connect();
@@ -774,4 +777,101 @@ const client = new MongoClient("mongodb://localhost:27017/kotc--db");
 //     // })
 //
 //     // console.log('Questions done')
+// }
+
+// angiData();
+
+// async function angiData() {
+
+//     const reviews = []
+//     let page = 0
+//     console.log(new Date())
+//     while (page !== null) {
+//         console.log(page)
+//         var config = {
+//             method: 'get',
+//             url: 'https://www.angi.com/companylist/us/ny/new-york/elite-tech-remodeling-reviews-7615152.htm?page=' + page,
+//             headers: {}
+//         };
+//         //  return await new Promise   
+//         await axios(config)
+//             .then(function (response) {
+//                 const document = response.data.split('<script id="__NEXT_DATA__" type="application/json">')
+//                 const document2 = document[1].split('</script>')
+//                 const data = JSON.parse(document2[0])
+//                 reviews.push(...data.props.pageProps.leaf.reviews)
+//                 if (data.props.pageProps.leaf.reviews.length < 10)
+//                     page = null
+//                 else
+//                     page++  
+//             })
+//             .catch(function (error) {
+//                 console.log(error);
+//             });
+//     }
+//     console.log(new Date())
+//     fs.writeFile('reviews.json', prettier.format(JSON.stringify(reviews), { semi: false, parser: "json" }), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+// }
+
+// ypData();
+
+// async function ypData() {
+
+//     const reviews = []
+//     let page = 1
+//     while (page !== null) {
+//         var config = {
+//             method: 'get',
+//             url: 'https://www.yellowpages.com/listings/1000437176130/reviews?page=' + page,
+//             headers: {}
+//         };
+
+//         await axios(config)
+//             .then(function (response) {
+//                 const { document } = (new JSDOM(response.data)).window;
+//                 const articles = document.querySelectorAll('article')
+//                 for (let i = 0; i < articles.length; i++) {
+//                     const review = {}
+//                     review.id = articles[i].id
+//                     const firstChild = articles[i].firstChild
+//                     const reviewInfo = firstChild.firstChild
+//                     const anchors = reviewInfo.getElementsByClassName('author')
+//                     review.user = anchors[0].innerHTML
+//                     const dates = reviewInfo.getElementsByClassName('date-posted')
+//                     if (dates[0].firstChild.nodeName === 'SPAN') {
+//                         review.date = dates[0].firstChild.innerHTML
+//                     } else {
+//                         review.date = dates[0].innerHTML.split(';').pop()
+//                     }
+//                     const reviewDescription = firstChild.getElementsByClassName('review-response')
+//                     review.description = reviewDescription[0].firstChild.textContent
+
+//                     const ratingDiv = firstChild.getElementsByClassName('result-ratings overall')
+//                     if (ratingDiv[0].firstChild.classList.contains('five'))
+//                         review.rating = 5
+//                     else if (ratingDiv[0].firstChild.classList.contains('four'))
+//                         review.rating = 4
+//                     else if (ratingDiv[0].firstChild.classList.contains('three'))
+//                         review.rating = 3
+//                     else if (ratingDiv[0].firstChild.classList.contains('two'))
+//                         review.rating = 2
+//                     else if (ratingDiv[0].firstChild.classList.contains('one'))
+//                         review.rating = 1
+
+//                     reviews.push(review)
+//                 }
+//                 if (articles.length < 20)
+//                     page = null
+//                 else
+//                     page++
+//             })
+//             .catch(function (error) {
+//                 console.log(error);
+//             });
+//     }
+//     fs.writeFile('reviews-yp.json', prettier.format(JSON.stringify(reviews), { semi: false, parser: "json" }), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
 // }
