@@ -1,23 +1,92 @@
 // Imports
-// import firebase from "firebase";
-// import {MongoClient, ObjectId} from "mongodb";
+import firebase from "firebase";
+import {MongoClient} from "mongodb";
 import * as fs from "fs";
-import axios from "axios";
-import prettier from 'prettier'
+// import axios from "axios";
+// import * as mailchimp from "@mailchimp/mailchimp_transactional";
+// import Mailchimp from '@mailchimp/mailchimp_transactional'
+// const mailchimpTx = require("@mailchimp/mailchimp_transactional")("_h2ozQqPRM35kXrJu7R-Mg");
+//
+// const run = async () => {
+//     const response = await mailchimpTx.messages.sendTemplate({
+//         template_name: "Campaign 1",
+//         template_content: [{}],
+//         message: {
+//             from_email: "noreply@reputationrooster.com",
+//             from_name: "Reputation Rooster",
+//             to: [{
+//                 // email: "nabeelrajpoot314@gmail.com",
+//                 email: "razalab29@gmail.com",
+//                 // email: "rkhabeer84@gmail.com",
+//                 // email: "iambashirniazi@gmail.com",
+//                 // email: "zainkhan.official10@gmail.com",
+//                 // email: "nabeelrajpoot314@gmail.com",
+//                 name: "Raza Lab",
+//                 type: "to"
+//             }],
+//             // merge_vars: [
+//             //     {
+//             //         "rcpt": "razalab29@gmail.com",
+//             //         "vars": [
+//             //             {
+//             //                 "name": "BODY",
+//             //                 "content": "Hey company,<br><br>I know you're super busy, so we've created a really quick way for you to leave us a review. It truly takes a few seconds and would really help us out. Just click on the link above to get started.<br><br>From everyone here at RR, thanks!<br><br>Rashid Khabeer, RR"
+//             //             },
+//             //             {
+//             //                 "name": "button_text",
+//             //                 "content": "oh ya!"
+//             //             },
+//             //             {
+//             //                 "name": "button_url",
+//             //                 "content": "https://site.reputationrooster.com/sparko-sol/invite"
+//             //             },
+//             //             {
+//             //                 "name": "message_title",
+//             //                 "content": "Would you recommend RR to a friend?"
+//             //             },
+//             //             {
+//             //                 "name": "company_name",
+//             //                 "content": "RR"
+//             //             },
+//             //             {
+//             //                 "name": "company_address",
+//             //                 "content": "12, new york, us"
+//             //             },
+//             //             {
+//             //                 "name": "NAME",
+//             //                 "content": "Zain Khan"
+//             //             }
+//             //         ]
+//             //     }
+//             // ],
+//         },
+//     });
+//     console.log(response);
+// };
+//
+// run();
+// mailchimpClient.setConfig({
+//     apiKey: '_h2ozQqPRM35kXrJu7R-Mg',
+//     server: 'us5',
+// });
+// import mailchimpClient from "c"
+// const mail = mailchimpClient.("_h2ozQqPRM35kXrJu7R-Mg")
+// import prettier from 'prettier'
 import pkg from 'jsdom';
-const { JSDOM } = pkg;
+
+const {JSDOM} = pkg;
 // import csvParser from "csv-parser";
 
 // Firebase Setup
-// firebase.initializeApp({
-//     apiKey: "AIzaSyDNkhYP2qNLwxhujM9_2I5CTAAsELX0aLo",
-//     authDomain: "kings-of-the-curve-sonal.firebaseapp.com",
-//     projectId: "kings-of-the-curve-sonal",
-//     storageBucket: "kings-of-the-curve-sonal.appspot.com",
-//     messagingSenderId: "347848146862",
-//     appId: "1:347848146862:web:d1ed02b703921c4252523f",
-//     measurementId: "G-9FZQXBEEQ4"
-// })
+firebase.initializeApp({
+    apiKey: "AIzaSyDNkhYP2qNLwxhujM9_2I5CTAAsELX0aLo",
+    authDomain: "kings-of-the-curve-sonal.firebaseapp.com",
+    projectId: "kings-of-the-curve-sonal",
+    storageBucket: "kings-of-the-curve-sonal.appspot.com",
+    messagingSenderId: "347848146862",
+    appId: "1:347848146862:web:d1ed02b703921c4252523f",
+    measurementId: "G-9FZQXBEEQ4"
+})
 
 // firebase.initializeApp({
 //     apiKey: "AIzaSyAP5OKVuX3Eu7PxwlA70UM0a2N0i9-2u_M",
@@ -29,13 +98,13 @@ const { JSDOM } = pkg;
 //     measurementId: "G-LY20XD2PB6"
 // })
 
-// const db = firebase.firestore();
+const db = firebase.firestore();
 // db.useEmulator("localhost", 8080);
 
 // const collections = ['v2_questions']
 // const collections = ['admins', 'available_for_random_match', 'banners', 'current_matches', 'decks', 'endless_highscore', 'endless_mode_option_categories', 'friends_list', 'institution_requests', 'institutions', 'logs', 'option_categories', 'questions', 'review_mode_module', 'review_mode_questions', 'subcategories', 'user_stats', 'users', 'v2_categories', 'v2_current_matches', 'v2_endless_mode_preferences', 'v2_endless_mode_scores', 'v2_flagged_questions', 'v2_institute_confirmations', 'v2_logs', 'v2_notifications', 'v2_qbank_preferences', 'v2_qbank_score', 'v2_qbank_scores', 'v2_question_bookmarks', 'v2_questions', 'v2_review_mode_preferences', 'v2_review_mode_scores', 'v2_subcategories', 'v2_timed_mode_preferences', 'v2_timed_mode_scores', 'v2_users']
 
-// const client = new MongoClient("mongodb://localhost:27017/kotc--db");
+const client = new MongoClient("mongodb://localhost:27017/kotc--db");
 // const client = new MongoClient("mongodb://api.kingofthecurve.org:27017/kotc--db");
 // const client = new MongoClient("mongodb+srv://arish:1234@cluster0.kz2th.mongodb.net/kotc--db?retryWrites=true&w=majority");
 // await client.connect();
@@ -49,18 +118,18 @@ const { JSDOM } = pkg;
 //     //// TO CHECK CANCELLATIONS AND REFUND IN FIREBASE ////
 //     ///////////////////////////////////////////////////////
 //
-//     // const records = [];
-//     //
-//     // const col = (await db.collection("v2_webhooks").get()).docs
-//     // for (const doc of col) {
-//     //     const data = doc.data()
-//     //     const json = JSON.parse(data.event)
-//     //     if (json["notification_type"] === "CANCEL" || json["notification_type"] === "REFUND") {
-//     //         records.push(json);
-//     //     }
-//     // }
-//     //
-//     // console.log(records)
+//     const records = [];
+//
+//     const col = (await db.collection("v2_webhooks").get()).docs
+//     for (const doc of col) {
+//         const data = doc.data()
+//         const json = JSON.parse(data.event)
+//         if (json["notification_type"] === "CANCEL" || json["notification_type"] === "REFUND") {
+//             records.push(json);
+//         }
+//     }
+//
+//     console.log(records)
 //
 //     ///////////////////////////////////////////////////////
 //     ///////////////// GENERATE CSV FILES //////////////////
@@ -779,10 +848,54 @@ const { JSDOM } = pkg;
 //     // console.log('Questions done')
 // }
 
+// deleteInvalidVideosFromQuestions();
+//
+// async function deleteInvalidVideosFromQuestions() {
+//     await client.connect()
+//     const questions = await client.db('kotc--db').collection("questions").find({
+//         videos: {
+//             $exists: true,
+//             $not: {$size: 0}
+//         }
+//     }).toArray()
+//     console.log(questions.length)
+//
+//     await fs.writeFile('all-questions.json', JSON.stringify(questions), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+//
+//     let i = 0
+//     const questionsFixed = []
+//     for (let question of questions) {
+//         let videos = []
+//         let flag = false;
+//         if (question.videos) {
+//             for (let i = 0; i < question.videos.length; ++i) {
+//                 await axios.get(question.videos[i]).then(value => {
+//                     videos.push(question.videos[i])
+//                 }).catch(reason => {
+//                     flag = true
+//                 })
+//             }
+//             if (flag) {
+//                 question.videos = videos
+//                 await client.db('kotc--db').collection("questions").findOneAndUpdate({_id: question._id}, {$set: {videos: videos}});
+//                 questionsFixed.push(question._id)
+//             }
+//             console.log(i++, '/', questions.length)
+//         }
+//     }
+//
+//     await fs.writeFile('fixed-questions.json', JSON.stringify(questionsFixed), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+//
+//     console.log('Questions done')
+// }
+
 // angiData();
-
+//
 // async function angiData() {
-
 //     const reviews = []
 //     let page = 0
 //     console.log(new Date())
@@ -793,7 +906,7 @@ const { JSDOM } = pkg;
 //             url: 'https://www.angi.com/companylist/us/ny/new-york/elite-tech-remodeling-reviews-7615152.htm?page=' + page,
 //             headers: {}
 //         };
-//         //  return await new Promise   
+//         //  return await new Promise
 //         await axios(config)
 //             .then(function (response) {
 //                 const document = response.data.split('<script id="__NEXT_DATA__" type="application/json">')
@@ -803,7 +916,7 @@ const { JSDOM } = pkg;
 //                 if (data.props.pageProps.leaf.reviews.length < 10)
 //                     page = null
 //                 else
-//                     page++  
+//                     page++
 //             })
 //             .catch(function (error) {
 //                 console.log(error);
@@ -816,9 +929,9 @@ const { JSDOM } = pkg;
 // }
 
 // ypData();
-
+//
 // async function ypData() {
-
+//
 //     const reviews = []
 //     let page = 1
 //     while (page !== null) {
@@ -827,7 +940,7 @@ const { JSDOM } = pkg;
 //             url: 'https://www.yellowpages.com/listings/1000437176130/reviews?page=' + page,
 //             headers: {}
 //         };
-
+//
 //         await axios(config)
 //             .then(function (response) {
 //                 const { document } = (new JSDOM(response.data)).window;
@@ -847,7 +960,7 @@ const { JSDOM } = pkg;
 //                     }
 //                     const reviewDescription = firstChild.getElementsByClassName('review-response')
 //                     review.description = reviewDescription[0].firstChild.textContent
-
+//
 //                     const ratingDiv = firstChild.getElementsByClassName('result-ratings overall')
 //                     if (ratingDiv[0].firstChild.classList.contains('five'))
 //                         review.rating = 5
@@ -859,7 +972,7 @@ const { JSDOM } = pkg;
 //                         review.rating = 2
 //                     else if (ratingDiv[0].firstChild.classList.contains('one'))
 //                         review.rating = 1
-
+//
 //                     reviews.push(review)
 //                 }
 //                 if (articles.length < 20)
@@ -874,4 +987,321 @@ const { JSDOM } = pkg;
 //     fs.writeFile('reviews-yp.json', prettier.format(JSON.stringify(reviews), { semi: false, parser: "json" }), (err, result) => {
 //         if (err) console.log('Error', err)
 //     })
+// }
+
+// updatePercentagesInQuestions();
+//
+// async function updatePercentagesInQuestions() {
+//     await client.connect()
+//     const questions = await client.db('kotc--db').collection("questions").find().toArray()
+//     console.log(questions.length)
+//
+//     await fs.writeFile('all-questions.json', JSON.stringify(questions), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+//
+//     let total = []
+//     for (let question of questions) {
+//         question.percentage = [0, 0, 0, 0]
+//         total.push(0)
+//     }
+//
+//     const scores = await client.db('kotc--db').collection("scores").find().toArray()
+//     console.log("Scores: ", scores.length)
+//
+//     let i = 0
+//     for (let score of scores) {
+//         for (let answer of score.answers) {
+//             for (let i = 0; i < questions.length; ++i) {
+//                 if (questions[i]._id == answer.question_id) {
+//                     total[i]++;
+//                     switch (answer.answer) {
+//                         case 0:
+//                             questions[i].percentage[0]++
+//                             break
+//                         case 1:
+//                             questions[i].percentage[1]++
+//                             break
+//                         case 2:
+//                             questions[i].percentage[2]++
+//                             break
+//                         case 3:
+//                             questions[i].percentage[3]++
+//                             break
+//                     }
+//                     // break
+//                 }
+//                 // break
+//             }
+//             // break
+//         }
+//         console.log(i++, '/', scores.length)
+//         // break
+//     }
+//
+//     for (let i = 0; i < questions.length; i++) {
+//         questions[i].percentage[0] = (questions[i].percentage[0] / total[i]) * 100
+//         questions[i].percentage[1] = (questions[i].percentage[1] / total[i]) * 100
+//         questions[i].percentage[2] = (questions[i].percentage[2] / total[i]) * 100
+//         questions[i].percentage[3] = (questions[i].percentage[3] / total[i]) * 100
+//     }
+//
+//     console.log("Total: ", total)
+//     console.log(questions)
+//     // console.log("Total: ", total[10])
+//     // console.log(questions[10])
+//     // console.log("Total: ", total[15])
+//     // console.log(questions[15])
+//     // console.log("Total: ", total[20])
+//     // console.log(questions[20])
+//     // console.log("Total: ", total[200])
+//     // console.log(questions[200])
+//     // console.log("Total: ", total[500])
+//     // console.log(questions[500])
+//     // console.log("Total: ", total[1000])
+//     // console.log(questions[1000])
+//     // console.log("Total: ", total[5000])
+//     // console.log(questions[5000])
+//
+//     // Saving
+//     for (let i = 0; i < questions.length; i++) {
+//         await client.db('kotc--db').collection("questions").findOneAndUpdate({_id: questions[i]._id}, {$set: {percentage: questions[i].percentage}});
+//         console.log(i, '/', questions.length)
+//     }
+//
+//     console.log('Questions done')
+// }
+
+// updateMediaInQuestions();
+//
+// async function updateMediaInQuestions() {
+//     await client.connect()
+//     const medias = await client.db('kotc--db').collection("question-media").find().toArray()
+//     console.log(medias.length)
+//
+//     await fs.writeFile('question-media.json', JSON.stringify(medias), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+//
+//     const questions = await client.db('kotc--db').collection("questions").find().toArray()
+//     console.log("Questions: ", questions.length)
+//
+//     let i = 0
+//     for (let media of medias) {
+//         let updates = []
+//         for (let question of questions) {
+//             let explanationCheck = false
+//             let statementCheck = false
+//             for (let keyword of media.keywords) {
+//                 if (question.explanation.toString().includes(keyword)) {
+//                     explanationCheck = true
+//                     break
+//                 }
+//                 if (question.statement.toString().includes(keyword)) {
+//                     statementCheck = true
+//                     break
+//                 }
+//             }
+//
+//             if (explanationCheck || statementCheck) {
+//                 await client.db('kotc--db').collection("questions").findOneAndUpdate({_id: question._id}, {
+//                     $set: {
+//                         images: media.images,
+//                         videos: media.videos,
+//                         pdfs: media.pdfs
+//                     }
+//                 });
+//                 updates.push(question.statement)
+//             }
+//         }
+//         await client.db('kotc--db').collection("question-media").findOneAndUpdate({_id: media._id}, {
+//             $set: {
+//                 questions: updates
+//             }
+//         });
+//         console.log(i++, '/', medias.length)
+//     }
+//
+//     await fs.writeFile('updated.json', JSON.stringify(updates), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+//     console.log('Questions done')
+// }
+
+// shiftUserStats();
+// async function shiftUserStats() {
+//     // const col2 = await db.collection("v2_users").get()
+//     // const l = col2.docs.length
+//     // console.log(col2.docs.length + ' Total Users')
+//     // let i = 0;
+//     // for (const doc of col2.docs) {
+//     //     const data = doc.data()
+//     //     let query = {}
+//     //     if (data.notification_time != undefined) {
+//     //         query.notification_time = data.notification_time
+//     //     }
+//     //     if (data.question_of_the_day_played != undefined) {
+//     //         query.qotd_played = data.question_of_the_day_played.toDate().toISOString()
+//     //     }
+//     //
+//     //     if (Object.keys(query).length > 0) {
+//     //         await client.db('kotc--db').collection("user-stats").findOneAndUpdate({user: doc.id}, {
+//     //             $set: query
+//     //         });
+//     //         console.log(doc.id)
+//     //     }
+//     //     console.log(i++ + '/' + l)
+//     // }
+//     console.log("Done")
+// }
+
+// shiftUserStats();
+//
+// async function shiftUserStats() {
+// await client.connect()
+// let list = []
+// let dup = []
+// let ids = []
+// let i = 0
+// const col2 = await client.db('kotc--db').collection("user-stats").find().forEach(async doc => {
+//     if (list.find(value => value == doc.user.toString())) {
+//         dup.push(doc.user)
+//         ids.push({
+//             _id: ObjectId(doc._id)
+//         })
+//     } else {
+//         list.push(doc.user)
+//     }
+//     console.log(i++)
+// })
+//
+// console.log(dup.length)
+// console.log(ids.length)
+//
+// await client.db('kotc--db').collection("user-stats").deleteMany({$or: ids})
+// await fs.writeFile('ids.json', JSON.stringify(ids), (err, result) => {
+//     if (err) console.log('Error', err)
+// })
+//
+// let list = ["ipm44km@glockapps.com",
+//     "allanb@glockapps.awsapps.com",
+//     "markb@glockapps.awsapps.com",
+//     "ingridmejiasri@aol.com",
+//     "caseywrighde@aol.de",
+//     "baileehinesfr@aol.fr",
+//     "brendarodgersuk@aol.co.uk",
+//     "franprohaska@aol.com",
+//     "garrettjacqueline@aol.com",
+//     "leannamccoybr@aol.com",
+//     "bcc@spamcombat.com",
+//     "chazb@userflowhq.com",
+//     "stevebarrydr@fastmail.com",
+//     "carloscohenm@freenet.de",
+//     "verify79@buyemailsoftware.com",
+//     "janefergusone@gmail.com",
+//     "llionelcohenbr@gmail.com",
+//     "bbarretthenryhe@gmail.com",
+//     "joanyedonald@gmail.com",
+//     "wandammorrison@gmail.com",
+//     "lawrenceleddylr@gmail.com",
+//     "alisonnlawrence@gmail.com",
+//     "tinamallahancr@gmail.com",
+//     "louiepettydr@gmail.com",
+//     "lenorebayerd@gmail.com",
+//     "cierawilliamsonwq@gmail.com",
+//     "silviacopelandqy@gmail.com",
+//     "daishacorwingx@gmail.com",
+//     "verifycom79@gmx.com",
+//     "verifyde79@gmx.de",
+//     "gd@desktopemail.com",
+//     "jpatton@fastdirectorysubmitter.com",
+//     "frankiebeckerp@hotmail.com",
+//     "yadiraalfordbj@hotmail.com",
+//     "sgorska12@interia.pl",
+//    "layneguerreropm@laposte.net",
+//     "britnigrahamap@laposte.net",
+//     "amandoteo79@libero.it",
+//     "glocktest@vendasrd.com.br",
+//     "b2bdeliver79@mail.com",
+//     "verifymailru79@mail.ru",
+//     "verify79ssl@netcourrier.com",
+//     "nsallan@expertarticles.com",
+//     "exosf@glockeasymail.com",
+//     "brendonosbornx@outlook.com",
+//     "tristonreevestge@outlook.com.br",
+//     "brittanyrocha@outlook.de",
+//     "glencabrera@outlook.fr",
+//     "christopherfranklinhk@outlook.com",
+//     "kaceybentleyerp@outlook.com",
+//     "meaghanwittevx@outlook.com",
+//     "aileenjamesua@outlook.com",
+//     "shannongreerf@outlook.com",
+//     "gabrielharberh@outlook.com",
+//     "candidobashirian@outlook.com",
+//     "vincenzaeffertz@outlook.com",
+//     "verify79@seznam.cz",
+//     "sa79@justlan.com",
+//     "glocktest@twcmail.de",
+//     "amandoteo79@virgilio.it",
+//     "verify79@web.de",
+//     "sebastianalvarezv@yahoo.com.br",
+//     "verifyca79@yahoo.ca",
+//     "justynbenton@yahoo.com",
+//     "emiliaplm@yahoo.com",
+//     "testiotestiko@yahoo.co.uk",
+//     "emailtester493@yahoo.com",
+//     "loganbridgesrk@yahoo.com",
+//     "rogertoddw@yahoo.com",
+//     "darianhuffg@yahoo.com",
+//     "andreablackburn@yandex.ru",
+//     "verifynewssl@zoho.com",
+//     "lamb@glockdb.com"]
+//     let list = [
+//         "ipm3z9z@glockapps.com", "allanb@glockapps.awsapps.com", "markb@glockapps.awsapps.com", "ingridmejiasri@aol.com", "franprohaska@aol.com", "garrettjacqueline@aol.com", "leannamccoybr@aol.com", "bcc@spamcombat.com", "chazb@userflowhq.com", "stevebarrydr@fastmail.com", "verify79@buyemailsoftware.com", "janefergusone@gmail.com", "joanyedonald@gmail.com", "wandammorrison@gmail.com", "lawrenceleddylr@gmail.com", "alisonnlawrence@gmail.com", "tinamallahancr@gmail.com", "louiepettydr@gmail.com", "lenorebayerd@gmail.com", "cierawilliamsonwq@gmail.com", "silviacopelandqy@gmail.com", "daishacorwingx@gmail.com", "verifycom79@gmx.com", "gd@desktopemail.com", "jpatton@fastdirectorysubmitter.com", "frankiebeckerp@hotmail.com", "yadiraalfordbj@hotmail.com", "b2bdeliver79@mail.com", "nsallan@expertarticles.com", "exosf@glockeasymail.com", "brendonosbornx@outlook.com", "christopherfranklinhk@outlook.com", "kaceybentleyerp@outlook.com", "meaghanwittevx@outlook.com", "aileenjamesua@outlook.com", "shannongreerf@outlook.com", "gabrielharberh@outlook.com", "candidobashirian@outlook.com", "vincenzaeffertz@outlook.com", "sa79@justlan.com", "justynbenton@yahoo.com", "emailtester493@yahoo.com", "loganbridgesrk@yahoo.com", "rogertoddw@yahoo.com", "darianhuffg@yahoo.com", "verifynewssl@zoho.com", "lamb@glockdb.com"
+//     ]
+//
+//     let res = []
+//     for (let i of list) {
+//         res.push({
+//             email: i,
+//             name: i.toString().split('@')[0],
+//             type: 'to',
+//         })
+//     }
+//     console.log(res)
+//     console.log("Done")
+// }
+
+// swapAnswersOfBooleanQuestions();
+//
+// async function swapAnswersOfBooleanQuestions() {
+//     await client.connect()
+//     const questions = await client.db('kotc--db').collection("questions").find({type: "bool"}).toArray()
+//     const len = questions.length
+//     console.log(len)
+//     let i = 0
+//     let updates = []
+//     for (let question of questions) {
+//         if (question.answer == 0) {
+//             await client.db('kotc--db').collection("questions").findOneAndUpdate({_id: question._id}, {
+//                 $set: {
+//                     answer: 1
+//                 }
+//             });
+//             updates.push(question._id)
+//         } else {
+//             await client.db('kotc--db').collection("questions").findOneAndUpdate({_id: question._id}, {
+//                 $set: {
+//                     answer: 0
+//                 }
+//             });
+//             updates.push(question._id)
+//         }
+//         console.log(i++, '/', len)
+//     }
+//
+//     await fs.writeFile('updated.json', JSON.stringify(updates), (err, result) => {
+//         if (err) console.log('Error', err)
+//     })
+//     console.log('Questions done')
 // }
